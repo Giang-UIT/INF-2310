@@ -8,19 +8,23 @@ class test():
         
         
     
-    def sending(self, message: str, socket: socket): 
-        
-        socket.sendto(message.encode(), (self.end, self.portNumber))
-        
+    def sending(self, message: str, socket: socket, portNumber: int): 
+
         print(f"the {self.end} is sending message")
-            
+        socket.sendto(message.encode(), ('', portNumber))
         
         
-    
+        
     def receiving(self,socket:socket): 
-        message, serverAddr = socket.recvfrom(2048)   
+        message, serverAddr = socket.recvfrom(2048)  
+        print(f"the {self.end} received message: {message.decode()}")
+        if message != None or serverAddr != None:
+            
+            return message, serverAddr
         
-        return message.decode().upper()
+
+        return None
+        
         
         
         
