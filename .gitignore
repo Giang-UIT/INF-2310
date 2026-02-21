@@ -2,5 +2,3 @@
 .DS_Store
 
 #python 
-Modules/
-__pycache__/
