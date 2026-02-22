@@ -15,7 +15,7 @@ class server(test):
         super().__init__(end, portNumber)
         self.portNumber = portNumber
         self.socket = socket(AF_INET, SOCK_DGRAM) #Creating a socket for the server. Connection type is UDP, and the IP protocol is IPv4.
-        self.socket.bind(('',self.portNumber)) #Binding the socket to the port number of the server.
+        self.socket.bind(('127.0.0.1',self.portNumber)) #Binding the socket to the port number of the server.
     
     def listening(self): 
         #Listening for incoming packets from the client. If a packet is received, the server will send an acknowledgment message back to the client.
@@ -23,22 +23,24 @@ class server(test):
         while True:
             
             packet = self.receiving() 
-
+            print(packet)
             if packet != None:
                 self.sending(packet)
             
             
     def sending(self, packet):
+        
         msgAck = "Message from server"
         return super().sending(msgAck, self.socket,packet[1][1]) #Sending the message to the port number of the client that sent the packet to the server.
     
     def receiving(self):
-        
+    
         #Receiving a packet from the client. If a packet is received, the server will return the packet
         Packet =  super().receiving(self.socket) 
         return Packet
         
 
 if __name__ == "__main__": 
-    serverProgram = server("server", 12001)
+    
+    serverProgram = server("server", 12000)
     serverProgram.listening()
