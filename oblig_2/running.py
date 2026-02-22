@@ -14,9 +14,7 @@ class test():
         socket.sendto(message.encode(), ('127.0.0.1', portNumber))
         
         
-        
     def receiving(self,socket:socket): 
-        print(f"the socket variable is: {socket} socket belongs to {self.end}")
         
         message, serverAddr = socket.recvfrom(2048)
           
