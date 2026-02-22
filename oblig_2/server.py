@@ -33,8 +33,8 @@ class server(common):
             
     def sending(self, packet):
         
-        msgAck = "Message from server"
-        return super().sending(msgAck, self.socket,packet[1][1]) #Sending the message to the port number of the client that sent the packet to the server.
+        
+        return super().sending(packet[0], self.socket,packet[1][1]) #Sending the message to the port number of the client that sent the packet to the server.
     
     def receiving(self): #Receiving a packet from the client. If a packet is received, the server will return the packet
     
