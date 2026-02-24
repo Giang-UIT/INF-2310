@@ -19,41 +19,26 @@ class client(common):
     
     def sending(self):
         
-        enc_algo = "e AES-256"
-        
+        #the "e" is a flag and it's stand for encryption. The format is: e + "an encryption algorithm"
+        enc_algo = "e AES-256" 
         super().sending(enc_algo, self.socket, self.serverPN)   
+        
         recv_msg = self.receiving()
+        addr = recv_msg[1]
+        recv_msg = recv_msg[0].decode()
         
-        
-        if recv_msg[0][0] == "eAck": 
-            
-            """
-            creating the cipher suite
-            """
-            
+        if recv_msg == "eAck": 
+            #creating the cipher suite
             symKey = get_random_bytes(32) # generating the key for AES-256
-            client_msg = "Hello World!"
+                
+            client_msg = b"Hello World!"
             
-            cipher = AES.new(symKey, AES.MODE_GCM)
-            cipherTxt, auth_tag = cipher.encrypt_and_digest(client_msg)
+            cipher = AES.new(symKey, AES.MODE_GCM) #creating cypher object
+            cipherTxt, auth_tag = cipher.encrypt_and_digest(client_msg) #encrypts the message 
             
-            nonce = cipher.nonce
+            nonce = cipher.nonce #Storing the nonce
             
             
-            print(cipherTxt)
-                        
-            with open("package.txt", "w") as f: 
-                f.write(symKey + ' ')
-                f.write(client_msg)
-            
-        
-        
-        
-        
-        """
-        with open("package.txt", "r") as f: 
-            print(f.read())
-        """
         
     def receiving(self):
         #Receiving a packet from the server. If a packet is received, the client will print the message.
@@ -67,8 +52,7 @@ class client(common):
         return self.socket.close()
 
 if __name__ == "__main__": 
-    
-    
+
     clientProgram = client("client", 12001)
     clientProgram.sending()
     clientProgram.close()

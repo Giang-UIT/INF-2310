@@ -43,7 +43,7 @@ class server(common):
         addr = Packet[1]
         Packet = Packet[0].decode()
         
-        #if "e" flag is discovered, returns an ACK msg
+        #if "e" flag is discovered, returns an ACK msg. 
         if Packet[0][0][0] == "e":     
             newPacket = ("eAck", addr)
                     
