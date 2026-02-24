@@ -25,7 +25,6 @@ class server(common):
         
         while True:
             packet = self.receiving() 
-            print(f"Packet's content: {packet}")
             
             if packet != None:
                 self.sending(packet)
@@ -42,13 +41,27 @@ class server(common):
         Packet =  super().receiving(self.socket)
         addr = Packet[1]
         Packet = Packet[0].decode()
+
+        
         
         #if "e" flag is discovered, returns an ACK msg. 
         if Packet[0][0][0] == "e":     
             newPacket = ("eAck", addr)
+            
                     
         else: #for other flags
-            pass
+            
+
+            with open ("recv_message.txt", "wb") as f: #Writing 
+                    
+                f.write(Packet.encode()) #Writing the message to a file.
+                print(f"the server received packet: {Packet}")    
+
+                while True:
+                    rChunks = super().receiving(self.socket) #Receiving the message from the client.   
+                    if not rChunks:
+                            break    
+                    f.write(rChunks[0]) #Writing the message to a file.
         
         return newPacket
           

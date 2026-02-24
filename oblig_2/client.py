@@ -29,22 +29,31 @@ class client(common):
         
         if recv_msg == "eAck": 
             #creating the cipher suite
-            symKey = get_random_bytes(32) # generating the key for AES-256
+            #symKey = get_random_bytes(32) # generating the key for AES-256
+
+            #cipher = AES.new(symKey, AES.MODE_GCM) #creating cypher object
+            #cipherTxt, auth_tag = cipher.encrypt_and_digest(rChunks) #encrypts the message 
+            #nonce = cipher.nonce #Storing the nonce
+
+            with open ("message.txt", "rb") as f: #Writing 
+                while True:
+                    rChunks = f.read(4096) #Reading the message in chunks of 4096 bytes           
+                    
+
+                    if not rChunks:
+                        break        
+
+                    self.socket.sendall(rChunks, ('127.0.0.1', self.serverPN)) #Sending the message to the server.
                 
-            client_msg = b"Hello World!"
+                    
             
-            cipher = AES.new(symKey, AES.MODE_GCM) #creating cypher object
-            cipherTxt, auth_tag = cipher.encrypt_and_digest(client_msg) #encrypts the message 
-            
-            nonce = cipher.nonce #Storing the nonce
-            
-            
+                
         
     def receiving(self):
         #Receiving a packet from the server. If a packet is received, the client will print the message.
 
         message =  super().receiving(self.socket) 
-        print(f"the client is receiving an incomming packet with the message being: {message[0].decode()}")
+        #print(f"the client is receiving an incomming packet with the message being: {message[0].decode()}")
         
         return message
     
