@@ -8,7 +8,7 @@ class common():
         self.portNumber = portNumber
         
     def sending(self, message: any, socket: socket, portNumber: int): 
-
+        print(f"the {self.end} is sending message: {message}")
         if type(message) != bytes:
             message = message.encode()
 
@@ -24,7 +24,6 @@ class common():
             
             return message, serverAddr
         
-
         return None
         
         

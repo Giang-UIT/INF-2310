@@ -1,4 +1,4 @@
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, RSA
 from Crypto.Random import get_random_bytes
 from socket import *
 from Common import common
@@ -30,10 +30,8 @@ class client(common):
         if recv_msg == "eAck": 
             #creating the cipher suite
             symKey = get_random_bytes(32) # generating the key for AES-256
-            
-            #cipher = AES.new(symKey, AES.MODE_GCM) 
-            #cipherTxt, auth_tag = cipher.encrypt_and_digest(rChunks)
-            #nonce = cipher.nonce 
+            cipher = AES.new(symKey, AES.MODE_GCM) 
+            nonce = cipher.nonce
 
             """
             Sending the format of the message to the server. This allows to know the format of the file.
@@ -42,16 +40,19 @@ class client(common):
             format = input("Enter the format of the message (e.g txt): ")
             super().sending(f'f {format}', self.socket, self.serverPN) 
 
+            super().sending(symKey, self.socket, self.serverPN) #Sending the nonce to the server. The nonce is needed for decryption.
+            super().sending(nonce, self.socket, self.serverPN) #Sending the nonce to the server. The nonce is needed for decryption.
+
             try:
                 #reading an sending the message in chunks of 4096 bytes
                 with open(f"message.{format}", "rb") as f: 
                     while True:
                         rChunks = f.read(4096) 
-
+                        enc_chunks = cipher.encrypt(rChunks) #Encrypting the message using the cipher suite. The message is encrypted in chunks of 4096 bytes.
                         if not rChunks:
                             break        
 
-                        super().sending(rChunks, self.socket, self.serverPN) #Sending the message to the server.
+                        super().sending(enc_chunks, self.socket, self.serverPN) #Sending the message to the server.
 
             except Exception as e:
                 super().sending("0", self.socket, self.serverPN) #If the file could not be opened, send an end-of-service flag to the server.

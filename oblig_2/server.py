@@ -1,6 +1,6 @@
 #! flask/bin/python3
 from socket import *
-from Crypto.Cipher import *
+from Crypto.Cipher import AES, RSA
 from Common import common
 
 #enc_list = ["AES-256", "AES-196", "AES-128"]
@@ -49,16 +49,24 @@ class server(common):
         elif Packet[0][0][0] == "f": #format flag. 
             format = Packet[2:] #Extracting the format of the message. The format is sent by the client before sending the message. This allows to know the format of the file.
             newPacket = ("fAck", addr)
+            
+            symKey = super().receiving(self.socket) #Receiving the symmetric key from the client. The symmetric key is needed for decryption.
+            symKey = symKey[0]
+            
+            nonce = super().receiving(self.socket) #Receiving the nonce from the client. The nonce is needed for decryption.
+            nonce = nonce[0]
+            
+            decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
 
             with open (f"recv_message.{format}", "wb") as f: #Writing 
                
                 while True:
                     mChunks = super().receiving(self.socket) #Receiving the message from the client.   
-
+                    print(f"the {self.end} received message: {mChunks[0]}")
                     if mChunks[0] == b"0": #end-of-service flag.
                         return "0"
 
-                    f.write(mChunks[0]) #Writing the message to a file.
+                    f.write(decipher.decrypt(mChunks[0])) #Writing the message to a file.
         
         
     def close(self):
