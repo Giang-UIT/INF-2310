@@ -1,6 +1,7 @@
 #! flask/bin/python3
 from socket import *
-from Crypto.Cipher import AES, RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.publickey import RSA
 from Common import common
 
 #enc_list = ["AES-256", "AES-196", "AES-128"]

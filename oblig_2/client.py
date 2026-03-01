@@ -1,5 +1,6 @@
-from Crypto.Cipher import AES, RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
+from Crypto.PublicKey import RSA
 from socket import *
 from Common import common
 import os
@@ -16,11 +17,26 @@ class client(common):
         self.serverPN = 12000 #server's port number
         self.socket = socket(AF_INET, SOCK_DGRAM) #Creating a socket for the server. Connection type is UDP, and the IP protocol is IPv4.
         self.socket.bind(('127.0.0.1',self.portNumber)) #Binding the socket to the port number of the client.
+
+    def gen_RSA(self):
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        public_key = key.publickey().export_key()
+
+        with open("private.pem", "wb") as f:
+            f.write(private_key)
+
+        return private_key, public_key
+        
+        return enc_message
     
     def sending(self):
         
         #the "e" is a flag and it's stand for encryption. The format is: e + "an encryption algorithm"
         enc_algo = "e AES-256" 
+
+        self.gen_RSA() #generating the RSA key pair for the client. The RSA key pair is needed for encryption and decryption of the symmetric key.
+        
         super().sending(enc_algo, self.socket, self.serverPN)   
         
         recv_msg = self.receiving()
