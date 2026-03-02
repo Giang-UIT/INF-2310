@@ -1,10 +1,10 @@
 #! flask/bin/python3
 from socket import *
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.publickey import RSA
+from Crypto.PublicKey import RSA
 from Common import common
 
-#enc_list = ["AES-256", "AES-196", "AES-128"]
+
 
 #Child class that inherits from parent class
 class server(common): 
@@ -13,6 +13,9 @@ class server(common):
         self.portNumber = portNumber #server's port number
         self.socket = socket(AF_INET, SOCK_DGRAM) #Creating a socket for the server. Connection type is UDP, and the IP protocol is IPv4.
         self.socket.bind(('127.0.0.1',self.portNumber)) #Binding the socket to the port number of the server.
+        self.encList = ["AES-256", "RSA", "AES-196", "AES-128"]
+        self.fileFormats = ["txt", "jpg", "mp4"]
+        self.chosenFormat = " "
     
     def listening(self): 
         #Listening for incoming packets from the client. If a packet is received, the server will send an acknowledgment message back to the client.
@@ -37,29 +40,54 @@ class server(common):
     
         #unpacking the package
         Packet =  super().receiving(self.socket)
-        addr = Packet[1]
-        Packet = Packet[0].decode()  
         
-        
-        #if "e" flag is discovered, returns an ACK msg. 
-        if Packet[0][0][0] == "e":     
-            newPacket = ("eAck", addr)
-            return newPacket
+        try:
+            addr = Packet[1]
+            Packet = Packet[0].decode()  
             
+                #if "e" flag is discovered, returns an ACK msg. 
+            if Packet[0][0] == "e":     
+                
+                newPacket = None
+                
+                enc_algo1 = Packet[2:] 
+                
+                enc_algo2 = super().receiving(self.socket)
+                enc_algo2 = enc_algo2[0].decode()
+                enc_algo2 = enc_algo2[2:]
+                
+                
+                for algo in self.encList: 
+                    if enc_algo1 == algo:
+                        flag = "e"
+                    elif enc_algo2 == algo: 
+                        flag += "Ack"
+                        newPacket = (flag, addr)
+                
+                return newPacket
+                
+                        
+            elif Packet[0][0][0] == "f": #format flag. 
+                format = Packet[2:] #Extracting the format of the message. The format is sent by the client before sending the message. This allows to know the format of the file.
+                newPacket = None
+                
+                for fileFormat in self.fileFormats: 
+                    if format == fileFormat: 
+                        newPacket = ("fAck", addr)    
+                        self.chosenFormat = fileFormat
+                        break
                     
-        elif Packet[0][0][0] == "f": #format flag. 
-            format = Packet[2:] #Extracting the format of the message. The format is sent by the client before sending the message. This allows to know the format of the file.
-            newPacket = ("fAck", addr)
+                return newPacket
             
-            symKey = super().receiving(self.socket) #Receiving the symmetric key from the client. The symmetric key is needed for decryption.
-            symKey = symKey[0]
+        except UnicodeDecodeError: #This assumes that the decode method tried to decode encrypted binaries
+            symKey = Packet[0]
             
             nonce = super().receiving(self.socket) #Receiving the nonce from the client. The nonce is needed for decryption.
             nonce = nonce[0]
             
             decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
 
-            with open (f"recv_message.{format}", "wb") as f: #Writing 
+            with open (f"recv_message.{self.chosenFormat}", "wb") as f: #Writing 
                
                 while True:
                     mChunks = super().receiving(self.socket) #Receiving the message from the client.   
@@ -69,9 +97,12 @@ class server(common):
 
                     f.write(decipher.decrypt(mChunks[0])) #Writing the message to a file.
         
-        
     def close(self):
         return self.socket.close()
+    
+    
+    
+    
              
 if __name__ == "__main__": 
     
