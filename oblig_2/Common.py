@@ -3,7 +3,7 @@ from socket import *
 
 
 class common(): 
-    def __init__(self, end: str, portNumber: int):
+    def __init__(self, end: str, portNumber: int, testMode: bool):
         self.end = end
         self.portNumber = portNumber
         

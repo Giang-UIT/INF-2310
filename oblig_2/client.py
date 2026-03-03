@@ -3,30 +3,28 @@ from Crypto.Random import get_random_bytes
 from Crypto.PublicKey import RSA
 from socket import *
 from Common import common
-import os
-import random
+
 
 
 #enc_list = ["AES-256", "AES-196", "AES-128"]
 
 class client(common): 
-    def __init__(self, end, portNumber):
-        super().__init__(end, portNumber)
-        self.portNumber = portNumber #client's port number
-        self.serverPN = 12000 #server's port number
+    def __init__(self, end: str, portNumber: int, testMode: bool):
+        super().__init__(end, portNumber,testMode)
+        self.portNumber = portNumber 
+        self.serverPN = 12000 
         self.socket = socket(AF_INET, SOCK_DGRAM) #Creating a socket for the server. Connection type is UDP, and the IP protocol is IPv4.
         self.socket.bind(('127.0.0.1',self.portNumber)) #Binding the socket to the port number of the client.
         self.flags = ["e","f"]
-        
         
         #Only for pytest
         self.eAck = False
         self.fAck = False
         self.encCheck = False
-        self.deCheck = False
         self.testData = b"This is a test message"
         self.encTestMsg = ""
         self.deTestMsg = ""
+        self.testMode = testMode
 
     def gen_RSA(self):
         key = RSA.generate(2048)
@@ -79,8 +77,10 @@ class client(common):
         Can change it to other file formats such as jpg or mp4.
         """
         
-        format = input("Enter the format of the message (e.g txt): ")
-        super().sending(f'f {format}', self.socket, self.serverPN) 
+                    
+        #format = input("Enter the format of the message (e.g txt): ")
+        super().sending(f'f txt', self.socket, self.serverPN) 
+            
         
         recv_msg = self.receiving()
         
@@ -95,19 +95,22 @@ class client(common):
             super().sending(nonce, self.socket, self.serverPN) #Sending the nonce to the server. The nonce is needed for decryption.
             
             
-            decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
-            self.encTestMsg  = cipher.encrypt(self.testData)
-            self.encCheck = True
-            self.deTestMsg  = decipher.decrypt(self.encTestMsg)
-            self.deCheck = True
+            if self.testMode == True:
+                #Encryption test
+                decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
+                self.encTestMsg  = cipher.encrypt(self.testData)
+                self.deTestMsg  = decipher.decrypt(self.encTestMsg)
+                
+                if self.deTestMsg == self.testData: 
+                    self.encCheck = True
+            
             
             try:
                 #sending the message in encrypted chunks of 4096 bytes
-                with open(f"message.{format}", "rb") as f: 
+                with open(f"message.txt", "rb") as f: 
                     while True:
                         rChunks = f.read(4096) 
                         enc_chunks = cipher.encrypt(rChunks)
-                        
                         
                         if not rChunks:
                             break        
@@ -135,7 +138,7 @@ class client(common):
 
 if __name__ == "__main__": 
 
-    clientProgram = client("client", 12001)
+    clientProgram = client("client", 12001, False)
     clientProgram.sending()
     clientProgram.close()
     

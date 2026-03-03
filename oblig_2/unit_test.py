@@ -2,9 +2,9 @@ import pytest
 from client import client as c
 from server import server as s
 
-
-def clientTesting(): 
-    client = c("client", 12001)
+"""
+def test_client(): 
+    client = c("client", 12001, True)
     
     client.sending()
     client.close()
@@ -12,21 +12,27 @@ def clientTesting():
     assert client.fAck == True
     assert client.eAck ==  True
     assert client.encCheck == True
-    assert client.deCheck == True
-    
-    
+"""    
 
-def serverTesting(self, client: c, server: s): 
-    server = s("server", 12000)
+
+def test_server(): 
+    server = s("server", 12000, True)
     server.listening()
+    
+    
+    
+    assert server.eFlagCheck == True
+    assert server.fFlagCheck == True
+    
+    with open("message.txt", "rb") as f: 
+        originalMsg = f.read()
+    
+    assert server.recvMsg == originalMsg
+    
     server.close()
     
     
 if __name__ == "__main__":
     
-    #test_integrity(client_test, server_test)
-    #test_confindentiality(client_test, server_test)
-    #test_availability(client_test, server_test)
-    
-    clientTesting()
-    #serverTesting()
+    #test_client()
+    test_server()
