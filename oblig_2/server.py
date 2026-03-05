@@ -1,7 +1,7 @@
 #! flask/bin/python3
 from socket import *
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.PublicKey import RSA
+import rsa
 from Common import common
 
 
@@ -29,6 +29,7 @@ class server(common):
 
             elif packet != None:
                 self.sending(packet)
+                
 
             
     def sending(self, packet):
@@ -80,10 +81,14 @@ class server(common):
                 return newPacket
             
         except UnicodeDecodeError: #This assumes that the decode method tried to decode encrypted binaries
-            symKey = Packet[0]
             
-            nonce = super().receiving(self.socket) #Receiving the nonce from the client. The nonce is needed for decryption.
-            nonce = nonce[0]
+            with open("private.pem", "rb") as f:
+                private_key = rsa.PrivateKey.load_pkcs1(f.read())
+            
+            pkg = rsa.decrypt(Packet[0], private_key) #Decrypting the package with the RSA algorithm. The package contains the symmetric key and nonce.
+
+            symKey = pkg[:32]
+            nonce = pkg[32:] #Receiving the nonce from the client. The nonce is needed for decryption.
             
             decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
 
