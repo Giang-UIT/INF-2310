@@ -3,6 +3,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.PublicKey import RSA
 from socket import *
 from Common import common
+import rsa
 
 
 
@@ -23,8 +24,8 @@ class server(common):
         #self.deCheck = False
         self.eFlagCheck = False
         self.fFlagCheck = False
-        #self.symKeyCheck = False
-        #self.nonceCheck = False
+        self.rsaCheck = False
+
         self.recvMsg = ""
         self.testMode = testMode
 
@@ -97,13 +98,17 @@ class server(common):
                 return newPacket
             
         except UnicodeDecodeError: #This assumes that the decode method tried to decode encrypted binaries
-            symKey = Packet[0]
+           
+            with open("private.pem", "rb") as f:
+                private_key = rsa.PrivateKey.load_pkcs1(f.read())
             
-            nonce = super().receiving(self.socket) #Receiving the nonce from the client. The nonce is needed for decryption.
-            nonce = nonce[0]
+            pkg = rsa.decrypt(Packet[0], private_key) #Decrypting the package with the RSA algorithm. The package contains the symmetric key and nonce.
+
+            symKey = pkg[:32]
+            nonce = pkg[32:] #Receiving the nonce from the client. The nonce is needed for decryption.
             
             decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
-            
+            self.rsaCheck = True
 
             with open (f"recv_message.{self.chosenFormat}", "wb") as f: #Writing 
                

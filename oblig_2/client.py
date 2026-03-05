@@ -1,6 +1,6 @@
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
-from Crypto.PublicKey import RSA
+import rsa
 from socket import *
 from Common import common
 
@@ -27,19 +27,17 @@ class client(common):
         self.testMode = testMode
 
     def gen_RSA(self):
-        key = RSA.generate(2048)
-        private_key = key.export_key()
-        public_key = key.publickey().export_key()
+        public_key, private_key = rsa.newkeys(2048) 
+
         
         #Pretends that they require password to access
-        with open("public.txt", "wb") as f: 
-            f.write(public_key)
+        with open("public.pem", "wb") as f: 
+            f.write(public_key.save_pkcs1("PEM"))
         
-        with open("private.txt", "wb") as f:
-            f.write(private_key)
+        with open("private.pem", "wb") as f:
+            f.write(private_key.save_pkcs1("PEM"))
 
-        return private_key, public_key
-    
+       
     def sending(self):
         
         "==========================================================Sending cipher suite ========================================================================================="
@@ -57,7 +55,7 @@ class client(common):
         
         if recv_msg[0].decode() == "eAck": 
             
-            RSA_keys = self.gen_RSA() #generating the RSA key pair for the client. The RSA key pair is needed for encryption and decryption of the symmetric key.
+            self.gen_RSA() #generating the RSA key pair for the client. The RSA key pair is needed for encryption and decryption of the symmetric key.
             
             #creating the cipher suite
             symKey = get_random_bytes(32) # generating the key for AES-256
@@ -80,7 +78,6 @@ class client(common):
                     
         #format = input("Enter the format of the message (e.g txt): ")
         super().sending(f'f txt', self.socket, self.serverPN) 
-            
         
         recv_msg = self.receiving()
         
@@ -90,10 +87,13 @@ class client(common):
             
             #After receiving fAck, the client send symKey and nonce, and the file thereafter. 
             self.fAck = True
+
+            with open("public.pem", "rb") as f: 
+                public_key = rsa.PublicKey.load_pkcs1(f.read())
             
-            super().sending(symKey, self.socket, self.serverPN) #Sending the symmetric key to the server. The nonce is needed for decryption.
-            super().sending(nonce, self.socket, self.serverPN) #Sending the nonce to the server. The nonce is needed for decryption.
+            enc_pkg = rsa.encrypt(symKey+nonce, public_key) #Encrypting the symmetric key with the RSA algorithm.
             
+            super().sending(enc_pkg, self.socket, self.serverPN) #Sending the encrypted symmetric key to the server.
             
             if self.testMode == True:
                 #Encryption test
@@ -103,7 +103,6 @@ class client(common):
                 
                 if self.deTestMsg == self.testData: 
                     self.encCheck = True
-            
             
             try:
                 #sending the message in encrypted chunks of 4096 bytes

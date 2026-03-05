@@ -23,6 +23,7 @@ def test_server():
     
     assert server.eFlagCheck == True
     assert server.fFlagCheck == True
+    assert server.rsaCheck == True
     
     with open("message.txt", "rb") as f: 
         originalMsg = f.read()
