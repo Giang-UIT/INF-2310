@@ -1,4 +1,6 @@
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.Random import get_random_bytes
+import rsa
 from socket import *
 
 
@@ -8,7 +10,7 @@ class common():
         self.portNumber = portNumber
         
     def sending(self, message: any, socket: socket, portNumber: int): 
-        print(f"the {self.end} is sending message: {message}")
+        
         if type(message) != bytes:
             message = message.encode()
 
@@ -18,14 +20,13 @@ class common():
     def receiving(self,socket:socket): 
         
         message, serverAddr = socket.recvfrom(4096)
-          
-        #print(f"the {self.end} received message: {message.decode()}")
+        
         if message != None or serverAddr != None:
             
             return message, serverAddr
         
         return None
-        
+
         
         
         

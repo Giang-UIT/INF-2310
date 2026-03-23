@@ -50,7 +50,7 @@ class client(common):
         else:
             raise Exception(f"the received message is not eAck. It is {recv_pk}")
         
-        "===========================================================Sending file format==========================================================================================="
+        "===========================================================Sending a requested file ==========================================================================================="
 
 
         """
@@ -61,7 +61,9 @@ class client(common):
         #format = input("Enter the format of the message (e.g txt): ")
         format = 'txt'
         req_file = f"file.{format}"
-        super().sending(f'f {req_file}', self.socket, self.serverPN) #TODO: decrypts the request file
+
+        #TODO: decrypts the request file
+        super().sending(f'f {req_file}', self.socket, self.serverPN) 
         
         #After receiving fAck, the client should receive symKey and nonce, and the file thereafter.
         recv_pk = self.receiving()
@@ -99,7 +101,7 @@ class client(common):
                 raise Exception("Could not decrypt the file")
             
         else: 
-            raise Exception(f"the received message is not fAck. It is {recv_pk}")
+            raise Exception(f"the received flag is not fAck. It is {recv_pk}")
     
         super().sending("0", self.socket, self.serverPN) #Always send an end-of-service flag to the server after sending the message.
                 

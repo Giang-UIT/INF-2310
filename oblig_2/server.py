@@ -1,9 +1,9 @@
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
-from Crypto.PublicKey import RSA
+import rsa
 from socket import *
 from Common import common
-import rsa
+
 
 
 
@@ -52,10 +52,12 @@ class server(common):
             if packet != None and packet != "0":
                 self.sending(packet)
                 
-            else: 
-                #Shutting down if flag "0" or unknown data are received.
+            elif packet == "0":
+
+                #Shutting down if flag "0".
                 print(f"Server received end-of-service flag. Closing connection and shutting down.")
                 break
+            
 
             
     def sending(self, packet):
@@ -67,7 +69,6 @@ class server(common):
 
         #unpacking the flags
         Packet =  super().receiving(self.socket)
-        
     
         addr = Packet[1]
         Packet = Packet[0].decode()
@@ -111,6 +112,7 @@ class server(common):
                     break
 
             if self.testMode == True:
+
                 #Encryption test
                 decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
                 self.encTestMsg  = cipher.encrypt(self.testData)
@@ -124,8 +126,6 @@ class server(common):
             symKey = get_random_bytes(32) #generating the key for AES-256
             cipher = AES.new(symKey, AES.MODE_GCM) 
             nonce = cipher.nonce
-
-            print(f"symkey: {symKey} and nonce {nonce}")
 
             with open("public.pem", "rb") as f: 
                 public_key = rsa.PublicKey.load_pkcs1(f.read())
@@ -145,9 +145,13 @@ class server(common):
                             break        
 
                         self.sending((enc_chunks,addr))
+                        return 
 
             except Exception as e:
-                print(f"Something went wrong while trying to send the file. Error: {e}")           
+                print(f"Something went wrong while trying to send the file. Error: {e}")
+
+        elif Packet[0][0][0] == "0": #end-of-service flag
+            return "0"     
             
     def close(self):
         return self.socket.close()
