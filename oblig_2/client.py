@@ -16,26 +16,16 @@ class client(common):
         self.socket = socket(AF_INET, SOCK_DGRAM) #Creating a socket for the server. Connection type is UDP, and the IP protocol is IPv4.
         self.socket.bind(('127.0.0.1',self.portNumber)) #Binding the socket to the port number of the client.
         self.flags = ["e","f"]
+        self.encList = ["AES-256", "RSA", "AES-196", "AES-128"]
         
         #Only for pytest
         self.eAck = False
         self.fAck = False
-        self.encCheck = False
-        self.testData = b"This is a test message"
-        self.encTestMsg = ""
-        self.deTestMsg = ""
+        self.rsaCheck = False
+        self.aesCheck = False
+
+        self.recv_msg =""
         self.testMode = testMode
-
-    def gen_RSA(self):
-        public_key, private_key = rsa.newkeys(2048) 
-
-        
-        #Pretends that they require password to access
-        with open("public.pem", "wb") as f: 
-            f.write(public_key.save_pkcs1("PEM"))
-        
-        with open("private.pem", "wb") as f:
-            f.write(private_key.save_pkcs1("PEM"))
 
        
     def sending(self):
@@ -45,85 +35,72 @@ class client(common):
         #the "e" is a flag that initiates the decision of encrypt algorithm. The format is: e + "an encryption algorithm"
         #super().sending(self.flags[0], self.socket, self.serverPN)   
         
+        #Sendin the cipher suite. Requesting the server to use AES-256 and RSA
         enc_algo = f"{self.flags[0]} AES-256"
         super().sending(enc_algo, self.socket, self.serverPN)   
         enc_algo = f"{self.flags[1]} RSA"
         super().sending(enc_algo, self.socket, self.serverPN)   
         
-        recv_msg = self.receiving()
+        #expecting eAck
+        recv_pk = self.receiving()
         
-        
-        if recv_msg[0].decode() == "eAck": 
-            
-            self.gen_RSA() #generating the RSA key pair for the client. The RSA key pair is needed for encryption and decryption of the symmetric key.
-            
-            #creating the cipher suite
-            symKey = get_random_bytes(32) # generating the key for AES-256
-            cipher = AES.new(symKey, AES.MODE_GCM) 
-            nonce = cipher.nonce
-           
+        if recv_pk[0] == b"eAck": 
             self.eAck = True
-            
   
-        else :
-            raise Exception(f"the received message is not eAck. It is {recv_msg}")
+        else:
+            raise Exception(f"the received message is not eAck. It is {recv_pk}")
         
         "===========================================================Sending file format==========================================================================================="
-                  
+
+
         """
-        Sending the format of the message to the server. This allows to know the format of the file.
+        Sending the requested file and its format to the server. The inclusion of the format allows the server to know the format of the file.
         Can change it to other file formats such as jpg or mp4.
         """
-        
-                    
+
         #format = input("Enter the format of the message (e.g txt): ")
-        super().sending(f'f txt', self.socket, self.serverPN) 
+        format = 'txt'
+        req_file = f"file.{format}"
+        super().sending(f'f {req_file}', self.socket, self.serverPN) #TODO: decrypts the request file
         
-        recv_msg = self.receiving()
-        
-        self.sending = 0
-        
-        if recv_msg[0].decode() == "fAck": 
-            
-            #After receiving fAck, the client send symKey and nonce, and the file thereafter. 
+        #After receiving fAck, the client should receive symKey and nonce, and the file thereafter.
+        recv_pk = self.receiving()
+
+        if recv_pk[0] == b"fAck": 
+          
             self.fAck = True
+            recv_pk = self.receiving()
 
-            with open("public.pem", "rb") as f: 
-                public_key = rsa.PublicKey.load_pkcs1(f.read())
-            
-            enc_pkg = rsa.encrypt(symKey+nonce, public_key) #Encrypting the symmetric key with the RSA algorithm.
-            
-            super().sending(enc_pkg, self.socket, self.serverPN) #Sending the encrypted symmetric key to the server.
-            
-            if self.testMode == True:
-                #Encryption test
+            try: 
+                with open("private.pem", "rb") as f:
+                    private_key = rsa.PrivateKey.load_pkcs1(f.read())
+                    
+                #Decrypting the package with the RSA algorithm. Expecting symKey and nonce in the same package
+                dec_pkg = rsa.decrypt(recv_pk[0], private_key)
+                print(dec_pkg)      
+                symKey = dec_pkg[:32]
+                nonce = dec_pkg[32:] #Receiving the nonce from the server. The nonce is needed for decryption.
+                
                 decipher = AES.new(symKey, AES.MODE_GCM, nonce=nonce)
-                self.encTestMsg  = cipher.encrypt(self.testData)
-                self.deTestMsg  = decipher.decrypt(self.encTestMsg)
-                
-                if self.deTestMsg == self.testData: 
-                    self.encCheck = True
+                self.rsaCheck = True
+                self.aesCheck = True
+
+                with open (f"recv_file.{format}", "wb") as f: #Writing 
             
-            try:
-                #sending the message in encrypted chunks of 4096 bytes
-                with open(f"message.txt", "rb") as f: 
-                    while True:
-                        rChunks = f.read(4096) 
-                        enc_chunks = cipher.encrypt(rChunks)
+                    enChunks = self.receiving() #Receiving chunks of the encrypted file from the server.   
+
+                    f.write(decipher.decrypt(enChunks[0])) #Writing the decrypted chunk to disk.
                         
-                        if not rChunks:
-                            break        
-
-                        super().sending(enc_chunks, self.socket, self.serverPN)
-
-            except Exception as e:
-                print(f"Something went wrong while trying to send the file. Error: {e}")
-                super().sending("0", self.socket, self.serverPN) #If the file could not be opened, send an end-of-service flag to the server.
                 
+                with open(f"recv_file.{format}", "rb") as f: 
+                    self.recvMsg = f.read(4096)
+                    
+            except Exception: 
+                raise Exception("Could not decrypt the file")
             
         else: 
-            raise Exception(f"the received message is not fAck. It is {recv_msg}")
-
+            raise Exception(f"the received message is not fAck. It is {recv_pk}")
+    
         super().sending("0", self.socket, self.serverPN) #Always send an end-of-service flag to the server after sending the message.
                 
     def receiving(self):

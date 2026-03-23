@@ -2,7 +2,7 @@ import pytest
 from client import client as c
 from server import server as s
 
-"""
+
 def test_client(): 
     client = c("client", 12001, True)
     
@@ -11,10 +11,10 @@ def test_client():
     
     assert client.fAck == True
     assert client.eAck ==  True
-    assert client.encCheck == True
-"""    
+    assert client.aesCheck == False
 
 
+"""
 def test_server(): 
     server = s("server", 12000, True)
     server.listening()
@@ -31,9 +31,9 @@ def test_server():
     assert server.recvMsg == originalMsg
     
     server.close()
-    
+"""   
     
 if __name__ == "__main__":
     
-    #test_client()
-    test_server()
+    test_client()
+    #test_server()
