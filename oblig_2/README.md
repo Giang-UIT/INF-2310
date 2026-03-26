@@ -15,6 +15,10 @@ That is the transfered file.
 
 3) Test program can now test whichever program by taking input.
 
+4) Restructured the folder to match description and added a method for finding path because of the restructuring
+
+5) Added print methods to print the test result to terminal
+
 **Diagram of the interaction**
 
 - This assumes that the interaction runs without errors. Exception handling is still a part of both programs. Test program is also there to detect errors. 
