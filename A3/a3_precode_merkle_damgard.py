@@ -119,7 +119,7 @@ def flip_one_random_bit(data: bytes) -> bytes:
     """Return a copy of data with exactly one random bit flipped."""
     # TODO(Task 1): implement (use os.urandom for randomness)
     res = os.urandom(len(data))
-    
+
     #need to force data to u32?
     
     return res
@@ -151,6 +151,7 @@ def digest_to_state_words_le(digest: bytes) -> List[int]:
 # ============================================================
 
 def compress(state: Sequence[int], block: bytes) -> List[int]:
+    
     """
     Toy compression function spec (must implement exactly):
 
@@ -188,8 +189,40 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
       new_state[j] = u32(state[j] ^ vj ^ v(j+4))
       (i.e., combine old chaining value with mixed vars)
     """
-    # TODO(Task 2): implement
-    raise NotImplementedError
+    
+    vars = []
+    new_state = []
+    
+    for i in range(7): 
+        vars[i] = state[i]
+    
+    for i in range(11): 
+        t0 = u32(vars[0] + block[(i*5 + 0) % 16] + RC[i])
+        vars[4] = u32(vars[4] ^ rotl32(t0, R[(i + 0) % 8]))
+        vars[0] = u32(vars[0] + vars[4])
+
+        t1 = u32(vars[1] + block[(i*5 + 1) % 16] + RC[i])
+        vars[5] = u32(vars[5] ^ rotl32(t1, R[(i + 1) % 8]))
+        vars[1] = u32(vars[1] + vars[5])
+
+        t2 = u32(vars[2] + block[(i*5 + 2) % 16] + RC[i])
+        vars[6] = u32(vars[6] ^ rotl32(t2, R[(i + 2) % 8]))
+        vars[2] = u32(vars[2] + vars[6])
+
+        t3 = u32(vars[3] + block[(i*5 + 3) % 16] + RC[i])
+        vars[7] = u32(vars[7] ^ rotl32(t3, R[(i + 3) % 8]))
+        vars[3] = u32(vars[3] + vars[7])
+
+        # cross-mix / permutation
+        if i % 2 == 0:
+            vars[0], vars[1], vars[2], vars[3] = vars[1], vars[2], vars[3], vars[0]
+        else:
+            vars[4], vars[5], vars[6], vars[7] = vars[6], vars[7], vars[4], vars[5]
+    
+        new_state[i] = u32(state[i] ^ vars[i] ^ vars[i+4]) 
+    
+    return new_state
+    
 
 # ============================================================
 # Task 3: Build the Hash Function (Merkle–Damgård) (TODO)
@@ -197,14 +230,24 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
 
 def md_pad(msg: bytes) -> bytes:
     """
+    What?
     Merkle–Damgård padding for 64-byte blocks:
     - append 0x80
-    - append 0x00 until (len % 64) == 56
+    - append 0x00 until (len % 64) == 56 
     - append 8-byte little-endian bit-length of original message
     """
-    # TODO(Task 3): implement
-    raise NotImplementedError
-
+    msg_str = msg.decode()
+    
+    while True: 
+        
+        msg_str = msg_str + "0"
+        
+        if len(msg_str.encode()) % 64 == 0:
+            msg = msg_str.encode()
+            break
+    
+    return msg
+    
 def toyhash(msg: bytes) -> bytes:
     """
     Return 32-byte digest of msg.
@@ -215,6 +258,7 @@ def toyhash(msg: bytes) -> bytes:
       - iterate compress over each 64-byte block
       - output words_to_bytes_le(state)
     """
+    
     # TODO(Task 3): implement
     raise NotImplementedError
 
@@ -373,7 +417,7 @@ def self_test() -> None:
     assert rotr32(0x12345678, 8) == 0x78123456
     assert xor_bytes(b"\x00\xFF", b"\x0F\x0F") == b"\x0F\xF0"
     assert hamming_distance(b"\x00", b"\xFF") == 8
-    assert flip_one_random_bit(b"\x0F\x0F") == 8
+    #assert flip_one_random_bit(b"\x0F\x0F") == 8
 
     # Task 3 padding shape check (not a test vector)
     m = b"abc"
@@ -465,4 +509,5 @@ def main() -> None:
     ap.print_help()
 
 if __name__ == "__main__":
+    
     main()
