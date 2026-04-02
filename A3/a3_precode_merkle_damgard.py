@@ -105,12 +105,10 @@ def hamming_distance(a: bytes, b: bytes) -> int:
     res = xor_bytes(a,b)
     tmp = 0
     distance = 0
-    
-    for i in range(len(res)): 
-        res  = str(bin(int(res[i])))
-        for i in res:
-            if i == "1": 
-                distance += 1
+        
+    for byte in res:
+        distance += bin(byte).count("1")
+        
 
     return distance
 
@@ -192,24 +190,27 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
     
     vars = []
     new_state = []
+    m = bytes_to_words_le(block)
+    j = 0
+    k = 0
+    vars = list(state)
     
-    for i in range(7): 
-        vars[i] = state[i]
     
-    for i in range(11): 
-        t0 = u32(vars[0] + block[(i*5 + 0) % 16] + RC[i])
+    for i in range(12): 
+        
+        t0 = u32(vars[0] + m[(i*5 + 0) % 16] + RC[i])
         vars[4] = u32(vars[4] ^ rotl32(t0, R[(i + 0) % 8]))
         vars[0] = u32(vars[0] + vars[4])
 
-        t1 = u32(vars[1] + block[(i*5 + 1) % 16] + RC[i])
+        t1 = u32(vars[1] + m[(i*5 + 1) % 16] + RC[i])
         vars[5] = u32(vars[5] ^ rotl32(t1, R[(i + 1) % 8]))
         vars[1] = u32(vars[1] + vars[5])
 
-        t2 = u32(vars[2] + block[(i*5 + 2) % 16] + RC[i])
+        t2 = u32(vars[2] + m[(i*5 + 2) % 16] + RC[i])
         vars[6] = u32(vars[6] ^ rotl32(t2, R[(i + 2) % 8]))
         vars[2] = u32(vars[2] + vars[6])
 
-        t3 = u32(vars[3] + block[(i*5 + 3) % 16] + RC[i])
+        t3 = u32(vars[3] + m[(i*5 + 3) % 16] + RC[i])
         vars[7] = u32(vars[7] ^ rotl32(t3, R[(i + 3) % 8]))
         vars[3] = u32(vars[3] + vars[7])
 
@@ -218,8 +219,13 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
             vars[0], vars[1], vars[2], vars[3] = vars[1], vars[2], vars[3], vars[0]
         else:
             vars[4], vars[5], vars[6], vars[7] = vars[6], vars[7], vars[4], vars[5]
-    
-        new_state[i] = u32(state[i] ^ vars[i] ^ vars[i+4]) 
+     
+        if j < 8:
+            new_state.append(u32(state[j] ^ vars[j] ^ vars[k+4]))
+            j += 1
+            
+        if k < 3: 
+            k += 1
     
     return new_state
     
@@ -236,19 +242,19 @@ def md_pad(msg: bytes) -> bytes:
     - append 0x00 until (len % 64) == 56 
     - append 8-byte little-endian bit-length of original message
     """
-    msg_str = msg.decode()
     
-    while True: 
-        
-        msg_str = msg_str + "0"
-        
-        if len(msg_str.encode()) % 64 == 0:
-            msg = msg_str.encode()
-            break
+    msg_size = len(msg) * 8
+    msg = msg + b"\x80"
     
-    return msg
+    while len(msg) % 64 != 56: 
+        msg = msg + b"\x00"
+    
+        
+    return msg + msg_size.to_bytes(8,"little")
+    
     
 def toyhash(msg: bytes) -> bytes:
+    #TODO(Task 3): implement
     """
     Return 32-byte digest of msg.
 
@@ -259,8 +265,13 @@ def toyhash(msg: bytes) -> bytes:
       - output words_to_bytes_le(state)
     """
     
-    # TODO(Task 3): implement
-    raise NotImplementedError
+    state = IV
+    paddedMsg = md_pad(msg)
+    
+    for x in range(0, len(paddedMsg), BLOCK_SIZE): 
+        state = compress(state, paddedMsg[x:x + BLOCK_SIZE])
+        
+    return words_to_bytes_le(state)
 
 def toyhash_hex(msg: bytes) -> str:
     return toyhash(msg).hex()
@@ -417,7 +428,7 @@ def self_test() -> None:
     assert rotr32(0x12345678, 8) == 0x78123456
     assert xor_bytes(b"\x00\xFF", b"\x0F\x0F") == b"\x0F\xF0"
     assert hamming_distance(b"\x00", b"\xFF") == 8
-    #assert flip_one_random_bit(b"\x0F\x0F") == 8
+
 
     # Task 3 padding shape check (not a test vector)
     m = b"abc"
