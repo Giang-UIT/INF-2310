@@ -464,6 +464,8 @@ def main() -> None:
     ap.add_argument("--throughput", action="store_true", help="measure hashes/sec for toyhash and sha256")
     ap.add_argument("--merkle-demo", action="store_true", help="run a small Merkle tree demo (toyhash)")
     args = ap.parse_args()
+    
+    print(args)
 
     if args.self_test:
         self_test()
