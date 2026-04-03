@@ -234,7 +234,7 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
 # Task 3: Build the Hash Function (Merkle–Damgård) (TODO)
 # ============================================================
 
-def md_pad(msg: bytes) -> bytes:
+def md_pad(msg: bytes, size: int) -> bytes:
     """
     What?
     Merkle–Damgård padding for 64-byte blocks:
@@ -242,8 +242,11 @@ def md_pad(msg: bytes) -> bytes:
     - append 0x00 until (len % 64) == 56 
     - append 8-byte little-endian bit-length of original message
     """
-    
-    msg_size = len(msg) * 8
+    if not size: 
+        msg_size = len(msg) * 8
+    else: 
+        msg_size = len(msg) * size
+        
     msg = msg + b"\x80"
     
     while len(msg) % 64 != 56: 
@@ -286,6 +289,7 @@ class ToyHashState:
     total_len: int        # total message length processed so far (bytes)
 
 def toyhash_stateful(msg: bytes) -> Tuple[bytes, ToyHashState]:
+    
     """
     Return (digest, state) after hashing msg.
 
@@ -294,8 +298,14 @@ def toyhash_stateful(msg: bytes) -> Tuple[bytes, ToyHashState]:
       - internal chaining value (8 x u32)
       - total_len = number of bytes of ORIGINAL (unpadded) message processed
     """
-    # TODO(Task 6): implement
-    raise NotImplementedError
+    
+    hashValue = toyhash(msg)
+    wordList = digest_to_state_words_le(hashValue)
+    msgSize = len(msg)
+    
+    internalState = ToyHashState(wordList, msgSize)
+        
+    return msg, internalState
 
 def toyhash_extend(
     digest: bytes,
@@ -316,8 +326,13 @@ def toyhash_extend(
       - Then continue hashing extra starting from the chaining value implied
         by digest (or from state_override if provided for testing).
     """
-    # TODO(Task 6): implement
-    raise NotImplementedError
+    
+    print(digest)
+    extendedHash = toyhash(digest + md_pad(digest) + extra)
+    print(extendedHash)
+    
+    
+    return extendedHash
 
 # ============================================================
 # Task 7: Merkle Tree Hashing (TODO)
@@ -463,6 +478,7 @@ def main() -> None:
 
     ap.add_argument("--throughput", action="store_true", help="measure hashes/sec for toyhash and sha256")
     ap.add_argument("--merkle-demo", action="store_true", help="run a small Merkle tree demo (toyhash)")
+    ap.add_argument("--lengthExtension", action="store_true", help="perform a length extension attack on toyhash")
     args = ap.parse_args()
     
     print(args)
@@ -470,7 +486,18 @@ def main() -> None:
     if args.self_test:
         self_test()
         return
+    
+    if args.lengthExtension:
+        msg = bytes(b'abc')
+        msgLength = len(msg)
+        
+        hashValue, internalState = toyhash_stateful(msg)
 
+        extraData =bytes(b"gay")
+        
+        toyhash_extend(hashValue, msgLength, extraData, None)
+        
+        
     if args.hash is not None:
         data = args.hash.encode("utf-8")
         print("toyhash :", toyhash_hex(data))
