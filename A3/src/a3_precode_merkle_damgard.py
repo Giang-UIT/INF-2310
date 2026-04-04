@@ -234,7 +234,7 @@ def compress(state: Sequence[int], block: bytes) -> List[int]:
 # Task 3: Build the Hash Function (Merkle–Damgård) (TODO)
 # ============================================================
 
-def md_pad(msg: bytes, size: int) -> bytes:
+def md_pad(msg: bytes) -> bytes:
     """
     What?
     Merkle–Damgård padding for 64-byte blocks:
@@ -242,10 +242,8 @@ def md_pad(msg: bytes, size: int) -> bytes:
     - append 0x00 until (len % 64) == 56 
     - append 8-byte little-endian bit-length of original message
     """
-    if not size: 
-        msg_size = len(msg) * 8
-    else: 
-        msg_size = len(msg) * size
+    
+    msg_size = len(msg) * 8
         
     msg = msg + b"\x80"
     
@@ -257,7 +255,6 @@ def md_pad(msg: bytes, size: int) -> bytes:
     
     
 def toyhash(msg: bytes) -> bytes:
-    #TODO(Task 3): implement
     """
     Return 32-byte digest of msg.
 
@@ -300,12 +297,22 @@ def toyhash_stateful(msg: bytes) -> Tuple[bytes, ToyHashState]:
     """
     
     hashValue = toyhash(msg)
-    wordList = digest_to_state_words_le(hashValue)
+    hasList = digest_to_state_words_le(hashValue)
     msgSize = len(msg)
     
-    internalState = ToyHashState(wordList, msgSize)
+    internalState = ToyHashState(hasList, msgSize)
         
-    return msg, internalState
+    return hashValue, internalState
+
+def mdPadExtend(msg: bytes, orig_len: int) -> bytes:
+    msg_size = (len(msg) + orig_len) * 8
+        
+    msg = msg + b"\x80"
+    
+    while len(msg) % 64 != 56: 
+        msg = msg + b"\x00"
+    
+    return msg + msg_size.to_bytes(8,"little")
 
 def toyhash_extend(
     digest: bytes,
@@ -327,12 +334,15 @@ def toyhash_extend(
         by digest (or from state_override if provided for testing).
     """
     
-    print(digest)
-    extendedHash = toyhash(digest + md_pad(digest) + extra)
-    print(extendedHash)
+    state = digest_to_state_words_le(digest)
+    paddedExtra = mdPadExtend(extra, orig_len)
     
+    for x in range(0, len(paddedExtra), BLOCK_SIZE): 
+        state = compress(state, paddedExtra[x:x + BLOCK_SIZE])
     
-    return extendedHash
+    #extendedHash = toyhash(digest + md_pad(digest) + extra)
+    
+    return words_to_bytes_le(state)
 
 # ============================================================
 # Task 7: Merkle Tree Hashing (TODO)
@@ -489,14 +499,18 @@ def main() -> None:
     
     if args.lengthExtension:
         msg = bytes(b'abc')
-        msgLength = len(msg)
+        msgLength = len(md_pad(msg))
         
         hashValue, internalState = toyhash_stateful(msg)
 
         extraData =bytes(b"gay")
         
-        toyhash_extend(hashValue, msgLength, extraData, None)
+        extendHash = toyhash_extend(hashValue, msgLength, extraData, None)
         
+        assert extendHash == toyhash(md_pad(msg) + extraData)
+
+        print("length extension attack [ok!]")
+        return
         
     if args.hash is not None:
         data = args.hash.encode("utf-8")
