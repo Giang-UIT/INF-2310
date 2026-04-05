@@ -364,7 +364,7 @@ def merkle_root(leaves: Sequence[bytes], hash_fn: Callable[[bytes], bytes]) -> b
     
     #In case the number of bottom nodes is odd
     if len(leaves) % 2 != 0: 
-        LeavesCpy.append(LeavesCpy[len(leaves) - 1])
+        LeavesCpy.append(LeavesCpy[- 1])
     
     while levels % 2 != 0: 
         levels += 1 
@@ -374,24 +374,26 @@ def merkle_root(leaves: Sequence[bytes], hash_fn: Callable[[bytes], bytes]) -> b
     #merging left and right nodes in a loop to get the root node
     while True: 
         
-        if(len(root) == 1): 
-            break
-        
         #Once i = levels, it goes to the next level.
         if i == levels: 
             LeavesCpy = list(root)
-            levels = len(LeavesCpy)
             
             if len(LeavesCpy) % 2 != 0: 
-                LeavesCpy.append(LeavesCpy[len(LeavesCpy) - 1])
-            
+                LeavesCpy.append(LeavesCpy[- 1])
+                
+            levels = len(LeavesCpy)
             root = []
             i = 0
         
-        hashValue = hash_fn(LeavesCpy[i] + LeavesCpy[i+1])
-        root.append(hashValue)
+        parentValue = hash_fn(LeavesCpy[i] + LeavesCpy[i+1])
+        root.append(parentValue)
+        
         i += 2
-    
+        
+        if levels == 2 and len(root) == 1: 
+            break
+        
+        
     return root[0]
 
 def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes], bytes]) -> List[Tuple[bytes, str]]:
@@ -404,21 +406,82 @@ def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes],
       - if direction == 'L': parent = hash_fn(sibling || current)
       - if direction == 'R': parent = hash_fn(current || sibling)
     """
-    # TODO(Task 7): implement
-    raise NotImplementedError
-
     
+    levels = len(leaves)
+    LeavesCpy = list(leaves)
+    root = []
+    proof = []
+    nextIdx = index
+    
+    #adding the initial siblings
+    if index % 2 == 0: 
+        sibling = leaves[index + 1]
+        proof.append((sibling, 'R'))
+        
+    elif index % 2 != 0: 
+        sibling = leaves[index - 1]
+        proof.append((sibling, 'L'))
+    
+    #In case the number of bottom nodes is odd
+    if len(leaves) % 2 != 0: 
+        LeavesCpy.append(LeavesCpy[- 1])
+    
+    while levels % 2 != 0: 
+        levels += 1 
+ 
+    i = 0
+    
+    #merging left and right nodes in a loop to get the root node
+    while True: 
+        
+        #Once i = levels, it goes to the next level.
+        if i == levels: 
+            nextIdx //= 2  
+            LeavesCpy = list(root)
+            
+            #adding the sibling in the next level 
+            if nextIdx % 2 == 0: 
+                proof.append((LeavesCpy[nextIdx + 1],'R'))
+            
+            elif nextIdx % 2 != 0: 
+                proof.append((LeavesCpy[nextIdx - 1],'L'))
+            
+            if len(LeavesCpy) % 2 != 0: 
+                LeavesCpy.append(LeavesCpy[- 1])
+                
+            levels = len(LeavesCpy)
+            root = []
+            i = 0
+        
+        hashValue = hash_fn(LeavesCpy[i] + LeavesCpy[i+1])
+        root.append(hashValue)
+        
+        i += 2
+        
+        if levels == 2 and len(root) == 1: 
+            break
+        
+    return proof
 
 def merkle_verify(
     leaf: bytes,
     index: int,
-    proof: Sequence[Tuple[bytes, str]],
+    proof: list[Tuple[bytes, str]],
     root: bytes,
     hash_fn: Callable[[bytes], bytes]
 ) -> bool:
     """Verify inclusion proof for leaf under the conventions documented above."""
-    # TODO(Task 7): implement
-    raise NotImplementedError
+    
+    current = leaf
+
+    for sibling, direction in proof: 
+        
+        if direction == 'L': 
+            current = hash_fn(sibling + current)
+        else: 
+            current = hash_fn(current + sibling)
+        
+    return current == root
 
 # ============================================================
 # Experiments (Tasks 4, 5, 8) — provided
@@ -526,8 +589,6 @@ def main() -> None:
     ap.add_argument("--merkle-demo", action="store_true", help="run a small Merkle tree demo (toyhash)")
     ap.add_argument("--lengthExtension", action="store_true", help="perform a length extension attack on toyhash")
     args = ap.parse_args()
-    
-    print(args)
 
     if args.self_test:
         self_test()
@@ -539,7 +600,7 @@ def main() -> None:
         
         hashValue, internalState = toyhash_stateful(msg)
 
-        extraData =bytes(b"gay")
+        extraData =bytes(b'gay')
         
         extendHash = toyhash_extend(hashValue, msgLength, extraData, None)
         
