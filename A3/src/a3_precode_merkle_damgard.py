@@ -27,6 +27,7 @@ import struct
 import time
 from dataclasses import dataclass
 from typing import Callable, List, Sequence, Tuple, Optional, Dict, Any
+import numpy as np
 
 # ============================================================
 # Configuration (toy Merkle–Damgård hash)
@@ -357,8 +358,48 @@ def merkle_root(leaves: Sequence[bytes], hash_fn: Callable[[bytes], bytes]) -> b
       - parent: hash_fn(left_hash || right_hash)
       - if odd number of nodes at a level: duplicate the last node
     """
+    levels = len(leaves)
+    LeavesCpy = list(leaves)
+    baseLength = len(leaves)
+    root = []
+    
+    if len(leaves) % 2 != 0: 
+        LeavesCpy.append(LeavesCpy[len(leaves) - 1])
+    
+    while levels != 2: 
+        if levels % 2 != 0:
+            levels += 1 
+            
+        if baseLength % 2 != 0: 
+            baseLength += 1
+            
+        levels = levels / 2
+        
+    levels = int(levels) + 1
+    
+    #merging left and right nodes in a loop to get the root node
+    for level in range(levels): 
+        
+        #level 0 = bottom level
+        if level == 0:       
+            for i in range(0,len(LeavesCpy),2): 
+                hashValue = hash_fn(hash_fn(LeavesCpy[i]) + hash_fn(LeavesCpy[i+1]))
+                root.append(hashValue)
+            
+        else: 
+            leavesCpy = list(root)
+            root = []
+            if len(leavesCpy) % 2 != 0: 
+                leavesCpy.append(leavesCpy[len(leavesCpy)-1])
+        
+            for i in range(0, len(leavesCpy), 2): 
+                hashValue = hash_fn(hash_fn(LeavesCpy[i]) + hash_fn(LeavesCpy[i+1]))
+                root.append(hashValue)
+        
+    print(len(root))
+    
     # TODO(Task 7): implement
-    raise NotImplementedError
+    return words_to_bytes_le(root)
 
 def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes], bytes]) -> List[Tuple[bytes, str]]:
     """
@@ -372,6 +413,8 @@ def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes],
     """
     # TODO(Task 7): implement
     raise NotImplementedError
+
+    
 
 def merkle_verify(
     leaf: bytes,
