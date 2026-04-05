@@ -360,46 +360,39 @@ def merkle_root(leaves: Sequence[bytes], hash_fn: Callable[[bytes], bytes]) -> b
     """
     levels = len(leaves)
     LeavesCpy = list(leaves)
-    baseLength = len(leaves)
     root = []
     
+    #In case the number of bottom nodes is odd
     if len(leaves) % 2 != 0: 
         LeavesCpy.append(LeavesCpy[len(leaves) - 1])
     
-    while levels != 2: 
-        if levels % 2 != 0:
-            levels += 1 
-            
-        if baseLength % 2 != 0: 
-            baseLength += 1
-            
-        levels = levels / 2
+    while levels % 2 != 0: 
+        levels += 1 
         
-    levels = int(levels) + 1
+    i = 0
     
     #merging left and right nodes in a loop to get the root node
-    for level in range(levels): 
+    while True: 
         
-        #level 0 = bottom level
-        if level == 0:       
-            for i in range(0,len(LeavesCpy),2): 
-                hashValue = hash_fn(hash_fn(LeavesCpy[i]) + hash_fn(LeavesCpy[i+1]))
-                root.append(hashValue)
+        if(len(root) == 1): 
+            break
+        
+        #Once i = levels, it goes to the next level.
+        if i == levels: 
+            LeavesCpy = list(root)
+            levels = len(LeavesCpy)
             
-        else: 
-            leavesCpy = list(root)
+            if len(LeavesCpy) % 2 != 0: 
+                LeavesCpy.append(LeavesCpy[len(LeavesCpy) - 1])
+            
             root = []
-            if len(leavesCpy) % 2 != 0: 
-                leavesCpy.append(leavesCpy[len(leavesCpy)-1])
+            i = 0
         
-            for i in range(0, len(leavesCpy), 2): 
-                hashValue = hash_fn(hash_fn(LeavesCpy[i]) + hash_fn(LeavesCpy[i+1]))
-                root.append(hashValue)
-        
-    print(len(root))
+        hashValue = hash_fn(LeavesCpy[i] + LeavesCpy[i+1])
+        root.append(hashValue)
+        i += 2
     
-    # TODO(Task 7): implement
-    return words_to_bytes_le(root)
+    return root[0]
 
 def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes], bytes]) -> List[Tuple[bytes, str]]:
     """
