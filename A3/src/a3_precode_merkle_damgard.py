@@ -413,18 +413,18 @@ def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes],
     proof = []
     nextIdx = index
     
-    #adding the initial siblings
-    if index % 2 == 0: 
-        sibling = leaves[index + 1]
-        proof.append((sibling, 'R'))
-        
-    elif index % 2 != 0: 
-        sibling = leaves[index - 1]
-        proof.append((sibling, 'L'))
-    
     #In case the number of bottom nodes is odd
     if len(leaves) % 2 != 0: 
         LeavesCpy.append(LeavesCpy[- 1])
+    
+    #adding the initial siblings
+    if index % 2 == 0: 
+        sibling = LeavesCpy[index + 1]
+        proof.append((sibling, 'R'))
+        
+    elif index % 2 != 0: 
+        sibling = LeavesCpy[index - 1]
+        proof.append((sibling, 'L'))
     
     while levels % 2 != 0: 
         levels += 1 
@@ -439,6 +439,9 @@ def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes],
             nextIdx //= 2  
             LeavesCpy = list(root)
             
+            if len(LeavesCpy) % 2 != 0: 
+                LeavesCpy.append(LeavesCpy[- 1])
+            
             #adding the sibling in the next level 
             if nextIdx % 2 == 0: 
                 proof.append((LeavesCpy[nextIdx + 1],'R'))
@@ -446,8 +449,7 @@ def merkle_proof(leaves: Sequence[bytes], index: int, hash_fn: Callable[[bytes],
             elif nextIdx % 2 != 0: 
                 proof.append((LeavesCpy[nextIdx - 1],'L'))
             
-            if len(LeavesCpy) % 2 != 0: 
-                LeavesCpy.append(LeavesCpy[- 1])
+            
                 
             levels = len(LeavesCpy)
             root = []
@@ -650,8 +652,8 @@ def main() -> None:
     if args.merkle_demo:
         leaves = [b"tx1", b"tx2", b"tx3", b"tx4", b"tx5"]
         root = merkle_root(leaves, toyhash)
-        proof = merkle_proof(leaves, 2, toyhash)  # tx3
-        ok = merkle_verify(leaves[2], 2, proof, root, toyhash)
+        proof = merkle_proof(leaves, 4, toyhash)  # tx3
+        ok = merkle_verify(leaves[4], 4, proof, root, toyhash)
         print("root :", root.hex())
         print("proof:", [(h.hex(), d) for (h, d) in proof])
         print("verify:", ok)
