@@ -27,7 +27,6 @@ import struct
 import time
 from dataclasses import dataclass
 from typing import Callable, List, Sequence, Tuple, Optional, Dict, Any
-import numpy as np
 
 # ============================================================
 # Configuration (toy Merkle–Damgård hash)
