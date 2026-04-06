@@ -476,6 +476,7 @@ def merkle_verify(
     
     current = leaf
 
+    #using direcetion to move instead of index number
     for sibling, direction in proof: 
         
         if direction == 'L': 
