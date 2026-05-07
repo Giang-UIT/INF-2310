@@ -21,7 +21,7 @@ SCOPES = ["User.Read", "User.ReadWrite","User.ReadWrite.All"]
 
 # TODO: Figure out the URO where Azure will redirect to after authentication. After deployment, this should
 #  be on your server. The URI must match one you have configured in your application registration.
-REDIRECT_URI = "http://localhost:5000/getAToken"
+REDIRECT_URI = "https://gng000.inf2310.net/getAToken"
 
 REDIRECT_PATH = "/getAToken"
 
