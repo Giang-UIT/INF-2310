@@ -5,24 +5,16 @@
     <title>INF-2310 Assignment 3</title>
 </head>
 <body>
-    {%if user%}
     <h1>Welcome {{ user.name }}</h1>
-    {%else %}
-    <h1>Login to gain access to main web page</h1>
-    {%endif%}
-    
+
     <h2>Menu</h2>
     
     <ul>
         <li><a href = "/login">login</a></li>
         <li><a href='/users'>Show Users</a></li>
         <li><a href='/profile'>Edit Profile</a></li>
-
         <li><a href="/logout">Logout</a></li>
-        
     </ul>
-
-    
 
 </body>
 </html>
