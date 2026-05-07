@@ -42,7 +42,7 @@ auth = identity.web.Auth(session=session,
 @app.route("/login")
 def login():
     # TODO: Use the auth object to log in.
-    res = auth.log_in(SCOPES, url_for("auth_response", _external = True))
+    res = auth.log_in(SCOPES, REDIRECT_URI)
     
     #print(f"this is from login: {res}")
     response = res
