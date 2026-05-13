@@ -1,0 +1,5 @@
+- python version: 3.13.12
+- How to run the program? Seriously? 
+- Avalanche experiment: python3 a3_gng000.py --avalanche --avalanche-trials (*The default number of trials is 200*). Increase with 25 trials for each trial. 
+- Collision experiment: python3 a3_gng000.py --collision (*16/20/24 bits*) --collision-trials 5 (*The default number of attempts is 500 000*)
+- Throughout experiment: python3 a3_gng000.py  --throughput. (*Runs this command 5 times*)
