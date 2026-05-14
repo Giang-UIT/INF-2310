@@ -44,8 +44,10 @@ def login():
     # TODO: Use the auth object to log in.
     res = auth.log_in(SCOPES, REDIRECT_URI)
     
-    #print(f"this is from login: {res}")
     response = res
+    
+    if not response:
+        return index() 
 
     return render_template("login.html", **response)
 
@@ -54,7 +56,6 @@ def auth_response():
     # TODO: Use the flask request object and auth object to complete the authentication.
     
     res = auth.complete_log_in(request.args)
-    #print(f"this is from auth response: {res}")
     
     if res.get("error"):
         return render_template("auth_error.html", result = res)
@@ -64,8 +65,6 @@ def auth_response():
 @app.route("/logout")
 def logout():
     # TODO: Use the auth object to log out and redirect to the home page
-    #res = auth.log_out(url_for("index"))
-    #print(f"this is from logout: {res}")
     
     return redirect(auth.log_out(url_for("index", _external = True)))
 
@@ -74,8 +73,6 @@ def logout():
 def index():
     # TODO: use the auth object to get the profile of the logged in user.
     res = auth.get_user()
-    
-    print(f"from index: {res}")
 
     return render_template('index.html', user=res)
 
@@ -83,7 +80,7 @@ def index():
 @app.route("/profile", methods=["GET"])
 def get_profile():
 
-    # TODO: Check that the user is loggen in and add credentials to the http request.
+    # TODO: Check that the user is logged in and add credentials to the http request.
     res = auth.get_token_for_user(SCOPES)
     
     if not res.get("access_token"): 
@@ -94,8 +91,6 @@ def get_profile():
         'https://graph.microsoft.com/v1.0/me', 
         headers={'Authorization': 'Bearer' + res["access_token"]}
     )
-    
-    print(result)
 
     return render_template('profile.html', user=result.json(), result=None)
 
@@ -108,10 +103,7 @@ def post_profile():
     if not res.get("access_token"): 
         logout()
         return index()
-    print(f"token: {res}")
-    
-    print(f"request form {request.form.to_dict()}")
-    
+
     result = requests.patch(
         'https://graph.microsoft.com/v1.0/users/' + request.form["id"],
         headers={'Authorization': 'Bearer' + res["access_token"]},
@@ -148,7 +140,6 @@ def get_users():
         headers={'Authorization': 'Bearer' + res["access_token"]}
     )
     
-    #print(f"from get_users: {result}")
     
     return render_template('users.html', result=result.json())
 
