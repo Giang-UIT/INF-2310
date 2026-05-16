@@ -21,7 +21,7 @@ SCOPES = ["User.Read", "User.ReadWrite","User.ReadWrite.All"]
 
 # TODO: Figure out the URO where Azure will redirect to after authentication. After deployment, this should
 #  be on your server. The URI must match one you have configured in your application registration.
-REDIRECT_URI = "https://gng000.inf2310.net/getAToken"
+REDIRECT_URI = "http://localhost:5000/getAToken"
 
 REDIRECT_PATH = "/getAToken"
 
@@ -41,19 +41,17 @@ auth = identity.web.Auth(session=session,
 
 @app.route("/login")
 def login():
-    # TODO: Use the auth object to log in.
     res = auth.log_in(SCOPES, REDIRECT_URI)
     
     response = res
     
     if not response:
-        return index() 
+        return index()
 
     return render_template("login.html", **response)
 
 @app.route(REDIRECT_PATH)
 def auth_response():
-    # TODO: Use the flask request object and auth object to complete the authentication.
     
     res = auth.complete_log_in(request.args)
     
@@ -64,14 +62,14 @@ def auth_response():
 
 @app.route("/logout")
 def logout():
-    # TODO: Use the auth object to log out and redirect to the home page
     
-    return redirect(auth.log_out(url_for("index", _external = True)))
+    redirect(auth.log_out(url_for("index", _external = True)))
+    
+    return index() 
 
 
 @app.route("/")
 def index():
-    # TODO: use the auth object to get the profile of the logged in user.
     res = auth.get_user()
 
     return render_template('index.html', user=res)
@@ -79,13 +77,11 @@ def index():
 
 @app.route("/profile", methods=["GET"])
 def get_profile():
-
-    # TODO: Check that the user is logged in and add credentials to the http request.
     res = auth.get_token_for_user(SCOPES)
     
     if not res.get("access_token"): 
         logout()
-        return index()
+        return render_template("profile_error.html", result = res)
     
     result = requests.get(
         'https://graph.microsoft.com/v1.0/me', 
@@ -96,13 +92,12 @@ def get_profile():
 
 @app.route("/profile", methods=["POST"])
 def post_profile():
-    # TODO: check that the user is logged in and add credentials to the http request.
     
     res = auth.get_token_for_user(SCOPES)
 
-    if not res.get("access_token"): 
+    if res.get("access_token"): 
         logout()
-        return index()
+        return render_template("post_error.html", result = res)
 
     result = requests.patch(
         'https://graph.microsoft.com/v1.0/users/' + request.form["id"],
@@ -110,15 +105,11 @@ def post_profile():
         json=request.form.to_dict(),
     )
     
-    
-
-    # TODO: add credentials to the http request.
     profile = requests.get(
         'https://graph.microsoft.com/v1.0/me',
         headers={'Authorization': 'Bearer' + res["access_token"]}
     )
     
-    print(f"response: {result}")
     return render_template('profile.html',
                            user=profile.json(),
                            result=result)
@@ -127,13 +118,11 @@ def post_profile():
 @app.route("/users")
 def get_users():
 
-    # TODO: Check that user is logged in and add credentials to the request.
-    
     res = auth.get_token_for_user(SCOPES)
     
     if not res.get("access_token"): 
         logout()
-        return index()
+        return render_template("get_error.html", result = res)
 
     result = requests.get(
         'https://graph.microsoft.com/v1.0/users',
