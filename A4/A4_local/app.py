@@ -71,7 +71,7 @@ def logout():
 @app.route("/")
 def index():
     res = auth.get_user()
-
+        
     return render_template('index.html', user=res)
 
 
@@ -95,7 +95,7 @@ def post_profile():
     
     res = auth.get_token_for_user(SCOPES)
 
-    if res.get("access_token"): 
+    if not res.get("access_token"): 
         logout()
         return render_template("post_error.html", result = res)
 
